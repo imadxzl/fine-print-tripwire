@@ -2,6 +2,8 @@
 
 **Find the clauses you'd regret agreeing to.**
 
+🔗 **Live demo: https://fine-print-tripwire.vercel.app/**. Click **Load sample**, then **Trip the wire**.
+
 Paste any Terms of Service, privacy policy or subscription agreement, or drop in a **screenshot** of one. Fine Print Tripwire uses **Gemma 4**, Google's open-weights multimodal model, to flag the risky clauses: data selling, auto-renewal traps, forced arbitration, broad content licenses and more. For each one it gives you:
 
 - a **0–100 risk score** and a one-line verdict
@@ -40,10 +42,11 @@ ollama pull gemma4
 BACKEND=ollama python app.py
 ```
 
-### Deploy on DigitalOcean App Platform
-1. **Create → App →** pick this GitHub repo. App Platform detects Python from `requirements.txt` (which is empty on purpose) and runs the `Procfile`.
-2. Add `GEMINI_API_KEY` as an **encrypted** environment variable.
-3. Deploy. The app listens on the `PORT` the platform provides. Each visitor gets `RATE_LIMIT` analyses per 10 minutes (default 5), and at most `MAX_CONCURRENT` analyses run at once (default 3), which protects the API quota.
+### Deploy your own
+The live demo runs on **Vercel**, imported straight from this repo. To host your own copy:
+1. Import the repo on Vercel (or DigitalOcean App Platform, Render, etc.). `requirements.txt` is empty on purpose so hosts detect a Python app, and the `Procfile` runs `python app.py` on platforms that use one.
+2. Add `GEMINI_API_KEY` as an environment variable (marked **Sensitive** or **Encrypted**), then redeploy so it takes effect.
+3. When the host sets `PORT`, the app listens on `0.0.0.0`. Each visitor gets `RATE_LIMIT` analyses per 10 minutes (default 5), and at most `MAX_CONCURRENT` run at once (default 3), which protects the API quota. These limits are tracked in memory per server instance.
 
 ## How it works
 1. `app.py` is a small standard-library web server. It sends the text, and any image as inline data, to Gemma 4 with a structured prompt asking for JSON: risk score, verdict, and flags, each with a **verbatim quote**, category, severity, explanation and action.
