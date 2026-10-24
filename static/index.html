@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fine Print Tripwire</title>
+<style>
+  :root {
+    --bg: #f6f5f1; --panel: #ffffff; --ink: #1d1d1f; --muted: #6b6b70; --line: #e3e1da;
+    --accent: #e8590c; --accent-ink: #fff;
+    --high: #d6336c; --high-bg: #fde3ec; --med: #e67700; --med-bg: #fff0d6; --low: #1c7ed6; --low-bg: #e1efff;
+    --shadow: 0 1px 2px rgba(0,0,0,.05), 0 4px 16px rgba(0,0,0,.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #141416; --panel: #1e1e21; --ink: #ececef; --muted: #9a9aa2; --line: #2e2e33;
+      --high: #ff6b9a; --high-bg: #4a1f2e; --med: #ffb347; --med-bg: #43321a; --low: #6cb4ff; --low-bg: #1b3149;
+      --shadow: none;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 15px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { padding: 20px 24px 8px; display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+  h1 { margin: 0; font-size: 22px; letter-spacing: -.01em; }
+  h1 span { color: var(--accent); }
+  .tag { color: var(--muted); font-size: 13px; }
+  .pill { font-size: 12px; padding: 2px 9px; border: 1px solid var(--line); border-radius: 99px; color: var(--muted); margin-left: auto; }
+  main { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 18px; padding: 12px 24px 32px; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; padding: 12px 16px 24px; } header { padding: 16px 16px 4px; } }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow);
+           padding: 16px; min-width: 0; }
+  .bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+  .bar h2 { font-size: 14px; margin: 0 auto 0 0; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  button { font: inherit; font-size: 14px; border-radius: 9px; border: 1px solid var(--line); background: transparent;
+           color: var(--ink); padding: 7px 12px; cursor: pointer; }
+  button:hover { border-color: var(--muted); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; padding: 9px 18px; }
+  button.primary:disabled { opacity: .55; cursor: progress; }
+  textarea { width: 100%; min-height: 380px; resize: vertical; border: 1px solid var(--line); border-radius: 10px;
+             padding: 12px; font: 13.5px/1.55 ui-monospace, Consolas, monospace; background: var(--bg); color: var(--ink); }
+  .drop { margin-top: 10px; border: 1.5px dashed var(--line); border-radius: 10px; padding: 12px; text-align: center;
+          color: var(--muted); font-size: 13.5px; cursor: pointer; }
+  .drop.over { border-color: var(--accent); color: var(--accent); }
+  .drop img { max-height: 120px; max-width: 100%; display: block; margin: 8px auto 0; border-radius: 6px; }
+  .actions { display: flex; justify-content: flex-end; margin-top: 12px; gap: 8px; }
+  #doc { white-space: pre-wrap; font-size: 14px; max-height: 70vh; overflow: auto; padding-right: 6px; }
+  mark { border-radius: 3px; padding: 1px 0; cursor: pointer; color: inherit; transition: outline .2s; }
+  mark.high { background: var(--high-bg); box-shadow: inset 0 -2px var(--high); }
+  mark.medium { background: var(--med-bg); box-shadow: inset 0 -2px var(--med); }
+  mark.low { background: var(--low-bg); box-shadow: inset 0 -2px var(--low); }
+  .flash { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .empty { color: var(--muted); text-align: center; padding: 60px 12px; }
+  .empty b { display: block; font-size: 40px; margin-bottom: 6px; }
+  .score { display: flex; gap: 16px; align-items: center; margin-bottom: 14px; }
+  .dial { --v: 0; width: 92px; height: 92px; border-radius: 50%; flex: none; display: grid; place-items: center;
+          background: conic-gradient(var(--c, var(--accent)) calc(var(--v) * 1%), var(--line) 0); }
+  .dial div { width: 72px; height: 72px; border-radius: 50%; background: var(--panel); display: grid; place-items: center;
+              font-size: 24px; font-weight: 700; }
+  .verdict { font-size: 16px; font-weight: 600; }
+  .counts { color: var(--muted); font-size: 13px; margin-top: 4px; }
+  .card { border: 1px solid var(--line); border-left: 4px solid var(--c); border-radius: 10px; padding: 12px 14px;
+          margin-bottom: 10px; cursor: pointer; }
+  .card.high { --c: var(--high); } .card.medium { --c: var(--med); } .card.low { --c: var(--low); }
+  .card h3 { margin: 0 0 4px; font-size: 15px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .sev { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--c); font-weight: 700; }
+  .cat { font-size: 11px; color: var(--muted); border: 1px solid var(--line); border-radius: 99px; padding: 0 7px; }
+  .card p { margin: 4px 0; }
+  .card q { display: block; color: var(--muted); font-size: 13px; font-style: italic; margin: 6px 0; }
+  .card .todo { font-size: 13.5px; } .card .todo::before { content: "→ "; color: var(--c); font-weight: 700; }
+  .card .miss { font-size: 12px; color: var(--muted); }
+  .error { color: var(--high); background: var(--high-bg); border-radius: 10px; padding: 12px; white-space: pre-wrap; font-size: 13.5px; }
+  .spinner { width: 34px; height: 34px; border: 3px solid var(--line); border-top-color: var(--accent); border-radius: 50%;
+             animation: spin 0.9s linear infinite; margin: 0 auto 12px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Fine Print <span>Tripwire</span></h1>
+  <div class="tag">Find the clauses you'd regret agreeing to.</div>
+  <div class="pill" id="model">…</div>
+</header>
+<main>
+  <section class="panel">
+    <div class="bar">
+      <h2 id="leftTitle">Paste the fine print</h2>
+      <button id="sampleBtn" type="button">Load sample</button>
+      <button id="editBtn" type="button" hidden>Edit text</button>
+    </div>
+    <div id="inputView">
+      <textarea id="text" placeholder="Paste Terms of Service, a privacy policy, a subscription agreement…"></textarea>
+      <div class="drop" id="drop" tabindex="0">
+        Or drop / paste a <b>screenshot</b> of the terms (Gemma 4 reads images)
+        <input type="file" id="file" accept="image/*" hidden>
+        <div id="preview"></div>
+      </div>
+      <div class="actions">
+        <button class="primary" id="go" type="button">Trip the wire</button>
+      </div>
+    </div>
+    <div id="doc" hidden></div>
+  </section>
+
+  <section class="panel" id="results">
+    <div class="empty"><b>⚠️</b>Results appear here: a risk score, every flagged clause in plain English, and what you can do about it.</div>
+  </section>
+</main>
+
+<script>
+const $ = (s) => document.querySelector(s);
+let image = null;           // {mime, data(base64), url}
+let lastText = "";
+
+fetch("/api/config").then(r => r.json()).then(c => {
+  $("#model").textContent = c.backend === "demo" ? "demo mode (no AI)" : `${c.model} · ${c.backend}`;
+});
+
+$("#sampleBtn").onclick = async () => {
+  $("#text").value = await (await fetch("/sample")).text();
+  showInput();
+};
+$("#editBtn").onclick = showInput;
+
+function showInput() {
+  $("#inputView").hidden = false; $("#doc").hidden = true; $("#editBtn").hidden = true;
+  $("#leftTitle").textContent = "Paste the fine print";
+}
+
+// ---- image input: click, drag-drop, or paste
+const drop = $("#drop");
+drop.onclick = () => $("#file").click();
+drop.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") $("#file").click(); };
+$("#file").onchange = (e) => e.target.files[0] && setImage(e.target.files[0]);
+drop.ondragover = (e) => { e.preventDefault(); drop.classList.add("over"); };
+drop.ondragleave = () => drop.classList.remove("over");
+drop.ondrop = (e) => { e.preventDefault(); drop.classList.remove("over"); e.dataTransfer.files[0] && setImage(e.dataTransfer.files[0]); };
+document.addEventListener("paste", (e) => {
+  const f = [...(e.clipboardData?.files || [])].find(f => f.type.startsWith("image/"));
+  if (f) { e.preventDefault(); setImage(f); }
+});
+function setImage(file) {
+  if (!file.type.startsWith("image/")) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const url = reader.result;
+    image = { mime: file.type, data: url.split(",")[1], url };
+    $("#preview").innerHTML = `<img src="${url}" alt="Uploaded screenshot"><button type="button" id="rmImg">Remove</button>`;
+    $("#rmImg").onclick = (ev) => { ev.stopPropagation(); image = null; $("#preview").innerHTML = ""; };
+  };
+  reader.readAsDataURL(file);
+}
+
+// ---- analyze
+$("#go").onclick = async () => {
+  const text = $("#text").value;
+  if (!text.trim() && !image) { $("#text").focus(); return; }
+  lastText = text;
+  $("#go").disabled = true;
+  $("#results").innerHTML = `<div class="empty"><div class="spinner"></div>Gemma is reading the fine print so you don't have to…<br><small id="elapsed">0 s</small></div>`;
+  const started = Date.now();
+  const timer = setInterval(() => { const el = $("#elapsed"); if (el) el.textContent = Math.round((Date.now() - started) / 1000) + " s"; }, 1000);
+  try {
+    const res = await fetch("/api/analyze", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, image: image && { mime: image.mime, data: image.data } }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || res.statusText);
+    render(data, text);
+  } catch (err) {
+    $("#results").innerHTML = `<div class="error"></div>`;
+    $("#results .error").textContent = "Something went wrong:\n" + err.message;
+  } finally {
+    clearInterval(timer);
+    $("#go").disabled = false;
+  }
+};
+
+// ---- fuzzy locate a quote inside the source text (ignores case, whitespace, curly quotes)
+function norm(text) {
+  let out = "", map = [], prevSpace = false;
+  for (let i = 0; i < text.length; i++) {
+    let ch = text[i].toLowerCase()
+      .replace(/[‘’‛]/, "'").replace(/[“”]/, '"').replace(/[–—]/, "-");
+    if (/\s/.test(ch)) { if (prevSpace) continue; ch = " "; prevSpace = true; } else prevSpace = false;
+    out += ch; map.push(i);
+  }
+  return { out, map };
+}
+function locate(source, quote) {
+  const s = norm(source), q = norm(quote.replace(/^[\s."'…]+|[\s."'…]+$/g, "")).out;
+  for (const probe of [q, q.slice(0, 80), q.slice(-80)]) {
+    if (probe.length < 12) continue;
+    const at = s.out.indexOf(probe);
+    if (at !== -1) {
+      if (probe === q) return [s.map[at], s.map[at + q.length - 1] + 1];
+      // partial match: extend to the end of the sentence
+      const start = s.map[at];
+      let end = source.slice(start).search(/[.!?](\s|$)/);
+      return [start, end === -1 ? source.length : start + end + 1];
+    }
+  }
+  return null;
+}
+
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const label = (c) => c.replace(/_/g, " ");
+
+function render(data, text) {
+  const flags = data.flags || [];
+  // Highlight quotes in the document (skip overlaps)
+  const ranges = [];
+  flags.forEach((f, i) => {
+    const r = text && locate(text, f.quote);
+    f.found = !!r;
+    if (r && !ranges.some(([a, b]) => r[0] < b && a < r[1])) ranges.push([r[0], r[1], i]);
+  });
+  ranges.sort((a, b) => a[0] - b[0]);
+  if (text.trim()) {
+    let html = "", pos = 0;
+    for (const [a, b, i] of ranges) {
+      html += esc(text.slice(pos, a)) + `<mark class="${flags[i].severity}" data-i="${i}" id="m${i}">${esc(text.slice(a, b))}</mark>`;
+      pos = b;
+    }
+    $("#doc").innerHTML = html + esc(text.slice(pos));
+    $("#inputView").hidden = true; $("#doc").hidden = false; $("#editBtn").hidden = false;
+    $("#leftTitle").textContent = data.document_type || "Document";
+  }
+
+  const n = (s) => flags.filter(f => f.severity === s).length;
+  const risk = data.overall_risk ?? 0;
+  const color = risk >= 67 ? "var(--high)" : risk >= 34 ? "var(--med)" : "var(--low)";
+  $("#results").innerHTML = `
+    <div class="score">
+      <div class="dial" style="--v:${risk}; --c:${color}" role="img" aria-label="Risk ${risk} out of 100"><div>${risk}</div></div>
+      <div>
+        <div class="verdict">${esc(data.verdict || "")}</div>
+        <div class="counts">${n("high")} high · ${n("medium")} medium · ${n("low")} low risk clauses</div>
+      </div>
+    </div>
+    ${flags.length ? "" : `<div class="empty">No red flags found. Nice.</div>`}
+    ${flags.map((f, i) => `
+      <div class="card ${f.severity}" data-i="${i}" id="c${i}">
+        <h3><span class="sev">${f.severity}</span> ${esc(f.title || label(f.category))} <span class="cat">${esc(label(f.category))}</span></h3>
+        <p>${esc(f.plain_english)}</p>
+        <q>${esc(f.quote)}</q>
+        <p class="todo">${esc(f.what_you_can_do)}</p>
+        ${f.found || !text.trim() ? "" : `<div class="miss">Couldn't pin this quote in the text</div>`}
+      </div>`).join("")}`;
+
+  document.querySelectorAll(".card").forEach(c => c.onclick = () => jump("#m" + c.dataset.i));
+  document.querySelectorAll("mark").forEach(m => m.onclick = () => jump("#c" + m.dataset.i));
+}
+
+function jump(sel) {
+  const el = document.querySelector(sel);
+  if (!el) return;
+  el.scrollIntoView({ behavior: "smooth", block: "center" });
+  el.classList.add("flash");
+  setTimeout(() => el.classList.remove("flash"), 1400);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,34 @@
+SNACKSNAP TERMS OF SERVICE
+(Fictional company, written for the Fine Print Tripwire demo.)
+
+Last updated: October 1, 2026
+
+1. Welcome
+Thanks for using SnackSnap, the app that lets you photograph your meals and share them with friends. By creating an account or opening the app, you agree to these Terms.
+
+2. Your Account
+You must be at least 13 years old to use SnackSnap. You are responsible for keeping your password secure. We may suspend or terminate your account at any time, for any reason, without notice and at our sole discretion.
+
+3. SnackSnap Plus Subscription
+SnackSnap Plus costs $9.99 per month after a 7-day free trial. Your subscription will automatically renew each month and your payment method will be charged unless you cancel at least 48 hours before the end of the current period. Cancellations must be made by mailing a written request to our office; in-app cancellation is not available. Fees already paid are non-refundable, including for partial months.
+
+4. Your Content
+You keep ownership of the photos and comments you post. However, by posting, you grant SnackSnap a worldwide, perpetual, irrevocable, royalty-free, sublicensable license to use, copy, modify, display, and create derivative works from your content for any purpose, including advertising, without compensation to you.
+
+5. Information We Collect
+We collect the photos you upload, your contacts, precise location (including in the background when the app is closed), device identifiers, and facial geometry data from your photos to improve our food recognition features.
+
+6. How We Share Information
+We may sell or share your personal information, including your location history and inferred dietary and health preferences, with advertising partners, data brokers, and other third parties. We may also share information with our affiliates and in connection with a merger or acquisition.
+
+7. Changes to These Terms
+We may change these Terms at any time without prior notice. Your continued use of SnackSnap after changes are posted means you accept the new Terms.
+
+8. Disclaimers and Limitation of Liability
+SnackSnap is provided "as is." To the maximum extent permitted by law, SnackSnap will not be liable for any indirect, incidental, or consequential damages, and our total liability to you will not exceed five dollars ($5.00).
+
+9. Dispute Resolution
+Any dispute arising from these Terms will be resolved by binding individual arbitration, and you waive your right to a jury trial and to participate in any class action. You may opt out of arbitration by emailing optout@snacksnap.example within 30 days of first accepting these Terms.
+
+10. Contact
+Questions? Write to SnackSnap Legal, 123 Crumb Street, Snackville.
