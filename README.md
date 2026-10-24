@@ -50,8 +50,5 @@ BACKEND=ollama python app.py
 2. The response is cleaned (fence stripping, schema normalization, severity sorting).
 3. The page fuzzy-matches each quote back into the original text (ignoring case, whitespace and curly quotes) to highlight it. Clicking a highlight jumps to its explanation, and clicking an explanation jumps back to the highlight.
 
-## Team
-- …
-
 ## License
 MIT
