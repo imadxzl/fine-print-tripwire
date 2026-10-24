@@ -1,0 +1,2 @@
+# No dependencies: Fine Print Tripwire uses only the Python standard library.
+# This file exists so hosting platforms (e.g. DigitalOcean App Platform) detect a Python app.

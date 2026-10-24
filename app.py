@@ -11,12 +11,16 @@ Environment (or a .env file next to this script):
     BACKEND          gemini (default) | ollama | demo
     OLLAMA_MODEL     default gemma4
     OLLAMA_URL       default http://localhost:11434
-    PORT             default 8000
+    PORT             default 8000 (set by hosts like DigitalOcean; then we listen on 0.0.0.0)
+    RATE_LIMIT       analyses per visitor per 10 minutes, default 5
+    MAX_CONCURRENT   analyses running at once, default 3
 """
 
 import json
 import os
 import re
+import threading
+import time
 import urllib.error
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -48,6 +52,9 @@ THINKING_LEVEL = os.environ.get("THINKING_LEVEL", "minimal")
 BACKEND = os.environ.get("BACKEND", "gemini" if API_KEY else "demo").lower()
 OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "gemma4")
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
+RATE_LIMIT = int(os.environ.get("RATE_LIMIT", 5))
+RATE_WINDOW = 600
+MAX_CONCURRENT = int(os.environ.get("MAX_CONCURRENT", 3))
 
 CATEGORIES = [
     "data_sharing", "tracking", "auto_renewal", "arbitration", "liability",
@@ -215,9 +222,38 @@ def analyze(text, image):
     return normalize(parse_json(raw))
 
 
+# ------------------------------------- abuse protection for the public deploy
+
+_hits = {}
+_hits_lock = threading.Lock()
+_slots = threading.BoundedSemaphore(MAX_CONCURRENT)
+
+
+def rate_limited(ip):
+    """True if this visitor already used RATE_LIMIT analyses in the last RATE_WINDOW seconds."""
+    now = time.time()
+    with _hits_lock:
+        recent = [t for t in _hits.get(ip, []) if now - t < RATE_WINDOW]
+        if len(recent) >= RATE_LIMIT:
+            _hits[ip] = recent
+            return True
+        recent.append(now)
+        _hits[ip] = recent
+        if len(_hits) > 10_000:  # forget idle visitors so memory stays bounded
+            for k in [k for k, v in _hits.items() if now - v[-1] > RATE_WINDOW]:
+                del _hits[k]
+        return False
+
+
 # ---------------------------------------------------------------- HTTP server
 
 class Handler(BaseHTTPRequestHandler):
+    def client_ip(self):
+        # DigitalOcean's load balancer sets do-connecting-ip; fall back to the socket address.
+        return (self.headers.get("do-connecting-ip")
+                or (self.headers.get("X-Forwarded-For") or "").split(",")[0].strip()
+                or self.client_address[0])
+
     def send_json(self, code, obj):
         body = json.dumps(obj).encode("utf-8")
         self.send_response(code)
@@ -254,9 +290,20 @@ class Handler(BaseHTTPRequestHandler):
             text, image = req.get("text", ""), req.get("image")
             if not text.strip() and not image:
                 return self.send_json(400, {"error": "Paste some text or add a screenshot first."})
+        except Exception:
+            return self.send_json(400, {"error": "Bad request."})
+        if BACKEND != "demo" and rate_limited(self.client_ip()):
+            return self.send_json(429, {"error": f"You've hit the limit of {RATE_LIMIT} analyses per "
+                                                 f"{RATE_WINDOW // 60} minutes. Try again shortly, or run it "
+                                                 "yourself from the GitHub repo."})
+        if not _slots.acquire(blocking=False):
+            return self.send_json(503, {"error": "Busy reading other people's fine print. Try again in a few seconds."})
+        try:
             self.send_json(200, analyze(text, image))
         except Exception as e:  # surface every failure to the UI during the demo
             self.send_json(500, {"error": str(e)})
+        finally:
+            _slots.release()
 
     def log_message(self, fmt, *args):
         print("  " + fmt % args)
@@ -264,6 +311,8 @@ class Handler(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
+    # Hosts set PORT and need us reachable from outside; locally stay on loopback.
+    host = os.environ.get("HOST", "0.0.0.0" if "PORT" in os.environ else "127.0.0.1")
     model = {"gemini": MODEL, "ollama": OLLAMA_MODEL}.get(BACKEND, "keyword rules")
-    print(f"Fine Print Tripwire on http://localhost:{port}  (backend: {BACKEND}, model: {model})")
-    ThreadingHTTPServer(("127.0.0.1", port), Handler).serve_forever()
+    print(f"Fine Print Tripwire on http://{host}:{port}  (backend: {BACKEND}, model: {model})", flush=True)
+    ThreadingHTTPServer((host, port), Handler).serve_forever()

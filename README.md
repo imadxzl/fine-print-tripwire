@@ -40,6 +40,11 @@ ollama pull gemma4
 BACKEND=ollama python app.py
 ```
 
+### Deploy on DigitalOcean App Platform
+1. **Create → App →** pick this GitHub repo. App Platform detects Python from `requirements.txt` (which is empty on purpose) and runs the `Procfile`.
+2. Add `GEMINI_API_KEY` as an **encrypted** environment variable.
+3. Deploy. The app listens on the `PORT` the platform provides. Each visitor gets `RATE_LIMIT` analyses per 10 minutes (default 5), and at most `MAX_CONCURRENT` analyses run at once (default 3), which protects the API quota.
+
 ## How it works
 1. `app.py` is a small standard-library web server. It sends the text, and any image as inline data, to Gemma 4 with a structured prompt asking for JSON: risk score, verdict, and flags, each with a **verbatim quote**, category, severity, explanation and action.
 2. The response is cleaned (fence stripping, schema normalization, severity sorting).
